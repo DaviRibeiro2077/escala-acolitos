@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="brasao.png">
+<style>html{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Escala dos Acólitos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabeçalho com abas; aba 1 = formulário de disponibilidade em coluna única; aba 2 = cartões por missa em grade */
+:root{
+  color-scheme:light;
+  --bg:#fbfcfb;
+  --surface:#ffffff;
+  --surface-2:#f1f5f2;
+  --fg:#1f2b25;
+  --muted:#62736a;
+  --line:#e0e7e2;
+  --accent:#3a7a5a;
+  --accent-ink:#ffffff;
+  --accent-soft:#e8f3ec;
+  --ok:#23704a;
+  --ok-soft:#e1f3e8;
+  --warn:#8a5a10;
+  --warn-soft:#fbf1da;
+  --gold:#8a6a1c;
+  --gold-soft:#f7edcf;
+  --bad:#a52f2f;
+  --bad-soft:#f6dada;
+  --font-display:"Newsreader",Georgia,"Times New Roman",serif;
+  --font-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-body);
+  padding-block:22px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:980px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:32px;letter-spacing:-.01em}
+h2{font-size:22px}
+h3{font-size:19px}
+p{margin:0}
+.sub{color:var(--muted);margin-top:4px}
+header{display:flex;flex-direction:column;gap:14px;margin-bottom:22px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{
+  appearance:none;border:0;background:none;color:var(--muted);font:inherit;font-weight:600;
+  padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;
+}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--fg)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel[hidden]{display:none!important}
+
+.block{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:6px}
+label.lab,.lab{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+input[type=text],input[type=date],input[type=time],select,textarea{
+  font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);
+  border-radius:5px;padding:9px 10px;width:100%;min-width:0;
+}
+textarea{resize:vertical;min-height:84px}
+input[type=text]:focus,input[type=date]:focus,input[type=time]:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.btn{
+  font:inherit;font-weight:600;border-radius:5px;padding:9px 14px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--fg);
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+
+.month{font-family:var(--font-display);font-size:18px;font-weight:600;margin:6px 0 8px}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.slot{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:5px;background:var(--surface);cursor:pointer;min-width:0;
+}
+.slot:hover{border-color:var(--accent)}
+.slot:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.slot input{width:18px;height:18px;accent-color:var(--accent);flex:none;margin:0}
+.slot .d{font-weight:600;font-variant-numeric:tabular-nums}
+.slot .w{color:var(--muted);text-transform:capitalize}
+.slot .t{margin-left:auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{min-height:22px;font-size:14px}
+.status.ok{color:var(--ok)}
+.status.err{color:var(--bad)}
+.notice{padding:12px 14px;border-radius:5px;background:var(--warn-soft);color:var(--warn);font-size:14px}
+
+.filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:420px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline}
+.card-head h3{text-transform:capitalize}
+.card-head h3 small{font-family:var(--font-body);font-size:14px;font-weight:500;color:var(--muted);text-transform:none;margin-left:6px}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.idle{background:var(--surface-2);color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--accent-soft);color:var(--fg);border-radius:4px;padding:2px 8px;font-size:13px}
+.chip.off{background:var(--surface-2);color:var(--muted)}
+.avail-line{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.avail-line .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.funcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 12px}
+.fn{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fn .lab span{font-weight:400}
+.fn.dup select{border-color:var(--bad)}
+.warnline{font-size:13px;color:var(--warn)}
+.warnline.bad{color:var(--bad)}
+.readonly-list{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.readonly-list dt{color:var(--muted)}
+.readonly-list dd{margin:0;font-weight:500}
+.empty{color:var(--muted);padding:18px;border:1px dashed var(--line);border-radius:6px}
+
+.resp{width:100%;border-collapse:collapse;font-size:14px}
+.resp th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.resp td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.resp td.n{font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.obs{color:var(--muted);font-size:13px}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:5px;font-size:14px;z-index:20;
+  max-width:calc(100% - 32px);
+}
+.brand{display:flex;align-items:center;gap:16px}
+.brand img{height:84px;width:auto;flex:none}
+.slot{flex-wrap:wrap}
+.slot .x{flex-basis:100%;font-size:13px;color:var(--gold);font-weight:600;padding-left:28px}
+.xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding-top:12px;border-top:1px solid var(--line)}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.hh{display:flex;align-items:center;gap:8px}
+.hh input{width:86px;padding:6px 8px}
+.pill.solene{background:var(--gold-soft);color:var(--gold)}
+.pill.extra{background:var(--accent-soft);color:var(--accent)}
+.card-head h3.raw{text-transform:none}
+.card.sol{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-soft)}
+.extra-form{border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:520px){.brand img{height:64px}h1{font-size:26px}}
+@media (prefers-reduced-motion:no-preference){.slot,.btn,.tab{transition:background-color .12s,border-color .12s,color .12s}}
+.comtabs{display:flex;flex-wrap:wrap;gap:8px}
+.comtab{font:inherit;font-weight:600;padding:8px 14px;border-radius:5px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.comtab:hover{border-color:var(--accent);color:var(--fg)}
+.comtab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+details.block>summary{cursor:pointer;font-family:var(--font-display);font-weight:600;font-size:19px}
+details.block[open]>summary{margin-bottom:12px}
+.hrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.hrow .hn{min-width:130px;font-weight:600;text-transform:capitalize}
+.hrow .ht{font-variant-numeric:tabular-nums;min-width:56px}
+.hadd{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:14px}
+.hadd .field{min-width:0}
+.hadd select,.hadd input{width:auto;min-width:120px}
+.quick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img id="brasao" alt="Brasão da Paróquia Santa Rosa de Lima" src="brasao.png">
+      <div>
+        <h1>Escala dos Acólitos</h1>
+        <p class="sub">Paróquia Santa Rosa de Lima · Poá-SP</p>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs" hidden>
+      <button class="tab" role="tab" id="tab-disp" aria-selected="true" aria-controls="panel-disp">Minha disponibilidade</button>
+      <button class="tab" role="tab" id="tab-escala" aria-selected="false" aria-controls="panel-escala">Escala</button>
+    </div>
+  </header>
+  <div class="row between" id="auth-row" hidden style="margin:-8px 0 16px">
+    <span class="sub" id="auth-info"></span>
+    <button class="btn small" id="auth-btn" type="button">Sou coordenador · Entrar</button>
+  </div>
+
+  <section class="panel" id="panel-disp" role="tabpanel" aria-labelledby="tab-disp">
+    <div class="stack">
+      <div id="dbnotice" class="notice" hidden>Não foi possível conectar ao servidor. Verifique a internet e tente de novo em instantes.</div>
+      <div class="block stack">
+        <div class="field">
+          <label class="lab" for="nome">Seu nome</label>
+          <input type="text" id="nome" maxlength="60" autocomplete="off" placeholder="Nome e sobrenome">
+          <p class="sub" style="font-size:13px">Use sempre o mesmo nome. Se você já enviou antes, suas datas aparecem marcadas.</p>
+        </div>
+        <div class="field">
+          <label class="lab" for="com-aco">Sua comunidade</label>
+          <select id="com-aco"></select>
+        </div>
+        <div>
+          <div class="row between" style="margin-bottom:8px">
+            <h2 id="disp-titulo">Em quais datas você pode servir?</h2>
+            <span class="sub" id="contador"></span>
+          </div>
+          <p class="sub" style="font-size:13px;margin-bottom:12px">Só as datas deste mês estão abertas. Se surgir algum imprevisto, volte aqui e atualize.</p>
+          <div class="quick" id="quick"></div>
+          <div id="slots"></div>
+        </div>
+        <div class="field">
+          <label class="lab" for="obs">Observação (opcional)</label>
+          <textarea id="obs" maxlength="300" placeholder="Ex.: só posso sair depois das 9h no domingo"></textarea>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="salvar" type="button">Enviar disponibilidade</button>
+          <span class="status" id="status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-escala" role="tabpanel" aria-labelledby="tab-escala" hidden>
+    <div class="stack">
+      <div class="block stack" id="filtros">
+        <div class="comtabs" id="comtabs" role="group" aria-label="Comunidade"></div>
+        <div class="row between">
+          <button class="btn small" id="mes-ant" type="button">‹ Mês anterior</button>
+          <h2 id="mes-nome" aria-live="polite"></h2>
+          <button class="btn primary small" id="mes-prox" type="button">Próximo mês ›</button>
+        </div>
+        <div class="row between" id="aberto-row" hidden>
+          <span class="sub">Disponibilidade aberta para: <strong id="aberto-nome"></strong></span>
+          <button class="btn small" id="abrir-mes" type="button">Abrir este mês para respostas</button>
+        </div>
+      </div>
+
+      <details class="block" id="coord-box" hidden>
+        <summary>Coordenadores com acesso</summary>
+        <p class="sub">Quem entra com estes e-mails (conta Google) vê e monta a escala.</p>
+        <div id="coord-list"></div>
+        <div class="hadd">
+          <div class="field"><label class="lab" for="coord-email">E-mail Google do coordenador</label>
+            <input type="text" id="coord-email" autocomplete="off" placeholder="nome@gmail.com" style="min-width:240px"></div>
+          <button class="btn primary" id="coord-add" type="button">Adicionar coordenador</button>
+        </div>
+        <p class="sub" id="coord-status" role="status" aria-live="polite" style="margin-top:8px"></p>
+      </details>
+
+      <details class="block" id="horarios-box">
+        <summary id="hsum">Horários fixos das missas</summary>
+        <p class="sub" id="hnome"></p>
+        <div id="hlist"></div>
+        <div class="hadd">
+          <div class="field"><label class="lab" for="h-dow">Dia</label>
+            <select id="h-dow">
+              <option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option>
+              <option value="3">Quarta</option><option value="4">Quinta</option><option value="5" selected>Sexta</option>
+              <option value="6">Sábado</option>
+            </select></div>
+          <div class="field"><label class="lab" for="h-hora">Horário</label>
+            <input type="time" id="h-hora" value="19:30"></div>
+          <div class="field"><label class="lab" for="h-tipo">Escala</label>
+            <select id="h-tipo"><option value="full">Completa (como domingo)</option><option value="simple">Simples (como sexta)</option></select></div>
+          <button class="btn primary" id="h-add" type="button">Adicionar missa</button>
+        </div>
+        <p class="sub" id="h-status" role="status" aria-live="polite" style="margin-top:8px"></p>
+      </details>
+
+      <div class="block stack" id="extra-box" hidden>
+        <div class="row between">
+          <div>
+            <h2>Missa extra</h2>
+            <p class="sub">Novena, festa ou outra celebração fora dos horários fixos, neste mês.</p>
+          </div>
+          <button class="btn small" id="extra-abrir" type="button">+ Adicionar missa extra</button>
+        </div>
+        <form id="extra-form" class="stack extra-form" hidden>
+          <div class="xgrid">
+            <div class="field"><label class="lab" for="x-titulo">Nome da celebração</label>
+              <input type="text" id="x-titulo" maxlength="40" autocomplete="off" placeholder="Ex.: Novena de Santa Rosa"></div>
+            <div class="field"><label class="lab" for="x-data">Data</label>
+              <input type="date" id="x-data"></div>
+            <div class="field"><label class="lab" for="x-hora">Horário</label>
+              <input type="time" id="x-hora" value="19:30"></div>
+            <div class="field"><label class="lab" for="x-tipo">Escala</label>
+              <select id="x-tipo">
+                <option value="full">Completa (como domingo)</option>
+                <option value="simple">Simples (como sexta)</option>
+              </select></div>
+          </div>
+          <label class="chk" for="x-solene"><input type="checkbox" id="x-solene"><span>Missa solene</span></label>
+          <div class="row">
+            <button class="btn primary" id="x-salvar" type="submit">Adicionar missa</button>
+            <button class="btn" id="x-cancel" type="button">Cancelar</button>
+            <span class="status" id="x-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+
+      <datalist id="sug-func">
+        <option value="Acólito de apoio"></option><option value="Galhetas"></option><option value="Lavabo"></option>
+        <option value="Evangeliário"></option><option value="Cerimoniário"></option><option value="Sineta"></option>
+        <option value="Velas do altar"></option><option value="Crucifixo"></option>
+      </datalist>
+      <div id="cards" class="cards"><div class="empty">Carregando…</div></div>
+
+      <div class="block stack" id="export" hidden>
+        <div class="row between">
+          <h2>Texto para o grupo</h2>
+          <div class="row">
+            <button class="btn small" id="copiar" type="button">Copiar texto</button>
+            <button class="btn primary small" id="pdf" type="button">Baixar PDF</button>
+          </div>
+        </div>
+        <textarea id="texto" readonly rows="10" aria-label="Texto da escala para colar no WhatsApp"></textarea>
+      </div>
+
+      <div class="block stack" id="respostas" hidden>
+        <div>
+          <h2>Quem respondeu</h2>
+          <p class="sub">Acólitos desta comunidade e as datas marcadas no mês escolhido.</p>
+        </div>
+        <div class="tablewrap" id="resp-wrap"></div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* Conexão com o Firebase. Cole aqui a configuração do seu projeto (Configurações do projeto > Seus aplicativos). */
+(function(){
+  var FB = {
+    apiKey: "AIzaSyB6K_MzaZmpg3GGrIPS24sShAz2TA-ol3E",
+    authDomain: "escala-dos-acolitos.firebaseapp.com",
+    projectId: "escala-dos-acolitos",
+    storageBucket: "escala-dos-acolitos.firebasestorage.app",
+    messagingSenderId: "244299509562",
+    appId: "1:244299509562:web:ce500542aedb206d32aa03"
+  };
+  var BASE = 'https://www.gstatic.com/firebasejs/10.14.1/';
+  var configurado = FB.apiKey && FB.apiKey.indexOf('COLE')<0;
+  var ready = null;
+
+  function boot(){
+    if(!configurado) return Promise.resolve(null);
+    if(ready) return ready;
+    ready = Promise.all([import(BASE+'firebase-app.js'),import(BASE+'firebase-auth.js'),import(BASE+'firebase-firestore.js')])
+      .then(function(r){
+        var A=r[0], U=r[1], S=r[2];
+        var app=A.initializeApp(FB), auth=U.getAuth(app), fs=S.getFirestore(app);
+        return new Promise(function(res){ var off=U.onAuthStateChanged(auth,function(){ off(); res(); }); })
+          .then(function(){ return auth.currentUser ? null : U.signInAnonymously(auth); })
+          .then(function(){ return {U:U,S:S,auth:auth,fs:fs}; });
+      })
+      .catch(function(e){ console.error(e); return null; });
+    return ready;
+  }
+
+  function dbFor(F){
+    var S=F.S, fs=F.fs;
+    function sd(s){ return {id:s.id, exists:s.exists(), data:function(){ return s.data(); }}; }
+    return {
+      doc:function(p){
+        var r=S.doc(fs,p);
+        return {
+          get:function(){ return S.getDoc(r).then(sd); },
+          set:function(d){ return S.setDoc(r,d); },
+          delete:function(){ return S.deleteDoc(r); },
+          onSnapshot:function(n,e){ return S.onSnapshot(r,function(s){ n(sd(s)); },function(er){ if(e) e(er); }); }
+        };
+      },
+      collection:function(p){
+        var c=S.collection(fs,p);
+        return {
+          onSnapshot:function(n,e){ return S.onSnapshot(c,function(s){ n({docs:s.docs.map(sd)}); },function(er){ if(e) e(er); }); }
+        };
+      }
+    };
+  }
+
+  function userFor(F){
+    var adminP=null;
+    function isAdmin(){
+      if(adminP) return adminP;
+      var u=F.auth.currentUser;
+      if(!u||u.isAnonymous){ adminP=Promise.resolve(false); return adminP; }
+      adminP=F.S.getDoc(F.S.doc(F.fs,'admin/coordenadores')).then(function(){ return true; },function(){ return false; });
+      return adminP;
+    }
+    return { canEdit:isAdmin, isOwner:isAdmin };
+  }
+
+  function authFor(F){
+    return {
+      email:function(){ var u=F.auth.currentUser; return (u&&!u.isAnonymous)?u.email:null; },
+      login:function(){ return F.U.signInWithPopup(F.auth,new F.U.GoogleAuthProvider()).then(function(){ location.reload(); }); },
+      logout:function(){ return F.U.signOut(F.auth).then(function(){ location.reload(); }); }
+    };
+  }
+
+  var downloads = {
+    save:function(o){
+      return new Promise(function(res,rej){
+        try{
+          var a=document.createElement('a');
+          a.href=URL.createObjectURL(new Blob([o.data],{type:'application/pdf'}));
+          a.download=o.filename; document.body.appendChild(a); a.click();
+          setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+          res({status:'saved'});
+        }catch(e){ rej(e); }
+      });
+    }
+  };
+
+  window.claude = {
+    use:function(n){
+      if(n==='downloads') return Promise.resolve(downloads);
+      return boot().then(function(F){
+        if(!F) return null;
+        if(n==='db') return dbFor(F);
+        if(n==='user') return userFor(F);
+        if(n==='auth') return authFor(F);
+        return null;
+      });
+    }
+  };
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  var $ = function(s){ return document.querySelector(s); };
+  var DOW = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  var DOWS = ['dom','seg','ter','qua','qui','sex','sáb'];
+  var DOWPL = ['todos os domingos','todas as segundas','todas as terças','todas as quartas','todas as quintas','todas as sextas','todos os sábados'];
+  var MES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  // Funções de cada missa (opc: true = opcional). Escala "completa" usa FUNC_DOM; "simples" usa FUNC_SEX.
+  var FUNC_SEX = [
+    {id:'missal',nome:'Missal'},{id:'microfone',nome:'Microfone'},{id:'a3',nome:'Acólito 3',opc:true}
+  ];
+  var FUNC_DOM = [
+    {id:'turibulo',nome:'Turíbulo'},{id:'missal',nome:'Missal'},
+    {id:'tocha1',nome:'Tocha 1'},{id:'tocha2',nome:'Tocha 2'},
+    {id:'microfone',nome:'Microfone'},{id:'cruz',nome:'Cruz'},
+    {id:'naveta',nome:'Naveta'},{id:'ofertorio',nome:'Ofertório',opc:true}
+  ];
+  // Comunidades e horários iniciais. O coordenador pode mudar os horários na própria página.
+  var COMUNIDADES = [
+    {id:'matriz',nome:'Matriz Santa Rosa de Lima',curto:'Matriz',
+      missas:[{dow:0,hora:'8h30',completa:true},{dow:0,hora:'10h',completa:true},{dow:0,hora:'19h30',completa:true},{dow:4,hora:'19h30',completa:false}]},
+    {id:'santo-antonio',nome:'Comunidade Santo Antônio',curto:'Santo Antônio',
+      missas:[{dow:0,hora:'7h',completa:true},{dow:5,hora:'19h30',completa:false}]},
+    {id:'sagrada-familia',nome:'Comunidade Sagrada Família',curto:'Sagrada Família',
+      missas:[{dow:3,hora:'19h30',completa:false},{dow:6,hora:'18h',completa:false},{dow:0,hora:'18h',completa:true}]},
+    {id:'aparecida',nome:'Comunidade Nossa Senhora Aparecida do Norte',curto:'N. S. Aparecida',
+      missas:[{dow:2,hora:'19h30',completa:false},{dow:6,hora:'19h30',completa:false}]}
+  ];
+
+  function comDe(id){ for(var i=0;i<COMUNIDADES.length;i++) if(COMUNIDADES[i].id===id) return COMUNIDADES[i]; return COMUNIDADES[0]; }
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function validCom(id){ return COMUNIDADES.some(function(c){ return c.id===id; }) ? id : COMUNIDADES[0].id; }
+
+  var state = {
+    disp:{}, escala:{}, extras:{}, horarios:{}, coms:{},
+    mine:new Set(), loaded:null, loadedComs:[], editor:false,
+    from:'', to:'', pending:false, db:null, dl:null, open:null,
+    comAco:validCom(lsGet('acolitos-com')), com:validCom(lsGet('escala-com'))
+  };
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function key(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parse(k){ var p=k.split('-').map(Number); return new Date(p[0],p[1]-1,p[2],12); }
+  function addDays(d,n){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12); }
+  function tomorrow(){ return addDays(new Date(),1); }
+  function dm(d){ return pad(d.getDate())+'/'+pad(d.getMonth()+1); }
+  function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  function clean(n){ return (n||'').trim().replace(/\s+/g,' ').slice(0,60); }
+  function slugify(n){
+    return n.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+  }
+  function normHora(s){
+    var r=String(s||'').trim().toLowerCase().match(/^(\d{1,2})\s*(?:[:h]\s*(\d{2})?)?$/);
+    if(!r) return null;
+    var h=Number(r[1]), mi=r[2]?Number(r[2]):0;
+    if(h>23||mi>59) return null;
+    return h+'h'+(mi?pad(mi):'');
+  }
+  function toMin(h){ var r=String(h||'').match(/^(\d+)h(\d{2})?$/); return r?Number(r[1])*60+(r[2]?Number(r[2]):0):0; }
+  function hhmm(h){ var r=String(h).match(/^(\d+)h(\d{2})?$/); return pad(Number(r[1]))+(r[2]||'00'); }
+  function nomeDe(id){ return (state.disp[id] && state.disp[id].nome) || id; }
+  function el(tag,attrs){
+    var e=document.createElement(tag);
+    if(attrs){ Object.keys(attrs).forEach(function(k){
+      if(k==='class') e.className=attrs[k]; else if(k==='text') e.textContent=attrs[k]; else e.setAttribute(k,attrs[k]);
+    }); }
+    for(var i=2;i<arguments.length;i++){ var c=arguments[i]; if(c==null) continue; e.appendChild(typeof c==='string'?document.createTextNode(c):c); }
+    return e;
+  }
+  function sortedIds(){
+    return Object.keys(state.disp).sort(function(a,b){ return nomeDe(a).localeCompare(nomeDe(b),'pt-BR'); });
+  }
+  function inCom(id,cid){
+    var d=state.disp[id]||{};
+    if(Array.isArray(d.coms)&&d.coms.indexOf(cid)>=0) return true;
+    return Object.keys(d.datas||{}).some(function(k){ return k.indexOf(cid+'_')===0; });
+  }
+  var toastTimer;
+  function toast(msg){
+    var t=$('#toast'); t.textContent=msg; t.hidden=false;
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.hidden=true; },3500);
+  }
+
+  /* ---------- missas ---------- */
+  function missasDe(cid){
+    var d=state.coms[cid];
+    if(d&&Array.isArray(d.missas)) return d.missas;
+    return comDe(cid).missas;
+  }
+  function massesBetween(fromKey,toKey,cid){
+    var out=[], c=parse(fromKey), end=parse(toKey), cfg=missasDe(cid);
+    while(c<=end){
+      var w=c.getDay(), dk=key(c);
+      cfg.forEach(function(ms){
+        var h=normHora(ms.hora);
+        if(ms.dow===w&&h) out.push({key:cid+'_'+dk+'_'+hhmm(h),com:cid,dow:w,date:new Date(c),hora:h,completa:!!ms.completa});
+      });
+      c=addDays(c,1);
+    }
+    return out;
+  }
+  function allMasses(fromKey,toKey,cid){
+    var out=massesBetween(fromKey,toKey,cid);
+    Object.keys(state.extras).forEach(function(id){
+      var ex=state.extras[id];
+      if(!ex||ex.com!==cid||!ex.data||ex.data<fromKey||ex.data>toKey) return;
+      var d=parse(ex.data);
+      out.push({key:'x-'+id,com:cid,extra:true,id:id,dow:d.getDay(),date:d,hora:normHora(ex.hora)||ex.hora||'',titulo:ex.titulo||'Missa extra',completa:!!ex.completa});
+    });
+    out.sort(function(a,b){
+      var ka=key(a.date), kb=key(b.date);
+      return ka<kb?-1:ka>kb?1:toMin(a.hora)-toMin(b.hora);
+    });
+    return out;
+  }
+  // Missa com alguém escalado (inclusive em função criada no dia) ou com observação entra no texto e no PDF.
+  function hasPublic(m){
+    var e=state.escala[m.key]; if(!e) return false;
+    var a=e.funcoes||{};
+    return !!e.obs || funcsOf(m).some(function(f){ return a[f.id]; });
+  }
+  function massHora(m){ var o=state.horarios[m.key]; return (o&&o.hora)||m.hora; }
+  function funcsOf(m){
+    var base=m.completa?FUNC_DOM:FUNC_SEX, e=state.escala[m.key];
+    var fx=(e&&Array.isArray(e.fx))?e.fx.map(function(f){ return {id:f.id,nome:f.nome,opc:true,custom:true}; }):[];
+    return fx.length?base.concat(fx):base;
+  }
+
+  /* ---------- abas ---------- */
+  function showTab(name){
+    if(name==='escala'&&!state.editor) return;
+    var esc = name==='escala';
+    $('#panel-disp').hidden = esc; $('#panel-escala').hidden = !esc;
+    $('#tab-disp').setAttribute('aria-selected', String(!esc));
+    $('#tab-escala').setAttribute('aria-selected', String(esc));
+  }
+  $('#tab-disp').addEventListener('click',function(){ showTab('disp'); });
+  $('#tab-escala').addEventListener('click',function(){ showTab('escala'); renderEscala(); });
+
+  /* ---------- disponibilidade (acólito) ---------- */
+  var slotDates = [];
+  function defaultOpen(){
+    var n=new Date(), d=new Date(n.getFullYear(),n.getMonth()+(n.getDate()>=15?1:0),1,12);
+    return d.getFullYear()+'-'+pad(d.getMonth()+1);
+  }
+  function openKey(){ return state.open || defaultOpen(); }
+  function openLabel(){ var p=openKey().split('-').map(Number); return MES[p[1]-1]+' de '+p[0]; }
+  function computeSlots(){
+    var p=openKey().split('-').map(Number);
+    var first=new Date(p[0],p[1]-1,1,12), last=new Date(p[0],p[1],0,12), t=tomorrow();
+    slotDates = allMasses(key(first>t?first:t),key(last),state.comAco);
+  }
+  function updateOpenUi(){
+    $('#aberto-nome').textContent=openLabel();
+    $('#abrir-mes').disabled=((state.from||'').slice(0,7)===openKey());
+  }
+  function buildSlots(){
+    computeSlots();
+    $('#disp-titulo').textContent='Quando você pode servir em '+openLabel()+'?';
+    var root=$('#slots'); root.replaceChildren();
+    var quick=$('#quick'); quick.replaceChildren();
+    if(!slotDates.length){
+      var tem=missasDe(state.comAco).length>0;
+      root.appendChild(el('div',{class:'empty',text:tem
+        ? 'Não há datas abertas agora. Aguarde o coordenador abrir o próximo mês.'
+        : 'Os horários das missas desta comunidade ainda não foram definidos. Fale com o coordenador.'}));
+      updateCount(); updateOpenUi(); return;
+    }
+    var dows={}; slotDates.forEach(function(m){ if(!m.extra) dows[m.dow]=1; });
+    Object.keys(dows).map(Number).sort().forEach(function(d){
+      var b=el('button',{class:'btn small',type:'button',text:'Marcar '+DOWPL[d]});
+      b.addEventListener('click',function(){ markWhere(function(m){ return !m.extra&&m.dow===d; },true); });
+      quick.appendChild(b);
+    });
+    var ball=el('button',{class:'btn small',type:'button',text:'Marcar todas as datas'});
+    ball.addEventListener('click',function(){ markWhere(function(){ return true; },true); });
+    var bclr=el('button',{class:'btn small',type:'button',text:'Limpar'});
+    bclr.addEventListener('click',function(){ markWhere(function(){ return true; },false); });
+    quick.appendChild(ball); quick.appendChild(bclr);
+
+    var lastMonth='', grid=null;
+    slotDates.forEach(function(m){
+      var mk=m.date.getFullYear()+'-'+m.date.getMonth();
+      if(mk!==lastMonth){
+        lastMonth=mk;
+        root.appendChild(el('div',{class:'month',text:cap(MES[m.date.getMonth()])+' de '+m.date.getFullYear()}));
+        grid=el('div',{class:'slots'}); root.appendChild(grid);
+      }
+      var cb=el('input',{type:'checkbox','data-d':m.key,id:'d-'+m.key});
+      cb.addEventListener('change',function(){
+        if(cb.checked) state.mine.add(m.key); else state.mine.delete(m.key);
+        updateCount();
+      });
+      grid.appendChild(el('label',{class:'slot',for:'d-'+m.key},
+        cb,
+        el('span',{class:'w',text:DOWS[m.dow]}),
+        el('span',{class:'d',text:dm(m.date)}),
+        el('span',{class:'t',text:massHora(m)}),
+        m.extra?el('span',{class:'x',text:m.titulo}):null
+      ));
+    });
+    syncChecks(); updateOpenUi();
+  }
+  function syncChecks(){
+    document.querySelectorAll('#slots input[data-d]').forEach(function(cb){ cb.checked = state.mine.has(cb.getAttribute('data-d')); });
+    updateCount();
+  }
+  function updateCount(){
+    var n=0; slotDates.forEach(function(m){ if(state.mine.has(m.key)) n++; });
+    $('#contador').textContent = n+' de '+slotDates.length+' datas marcadas';
+  }
+  function markWhere(pred,val){
+    slotDates.forEach(function(m){ if(pred(m)){ if(val) state.mine.add(m.key); else state.mine.delete(m.key); } });
+    syncChecks();
+  }
+  function setStatus(msg,kind){ var s=$('#status'); s.textContent=msg; s.className='status'+(kind?' '+kind:''); }
+
+  var sel=$('#com-aco');
+  COMUNIDADES.forEach(function(c){ sel.appendChild(el('option',{value:c.id,text:c.nome})); });
+  sel.value=state.comAco;
+  sel.addEventListener('change',function(){
+    state.comAco=validCom(sel.value); lsSet('acolitos-com',state.comAco); setStatus(''); buildSlots();
+  });
+
+  function loadMine(){
+    var nome=clean($('#nome').value), id=slugify(nome);
+    lsSet('acolitos-nome',nome);
+    if(!id||!state.db||id===state.loaded) return;
+    state.db.doc('disponibilidade/'+id).get().then(function(snap){
+      state.loaded=id;
+      if(snap.exists){
+        var d=snap.data()||{};
+        state.mine=new Set(Object.keys(d.datas||{}));
+        state.loadedComs=Array.isArray(d.coms)?d.coms:[];
+        $('#obs').value=d.obs||'';
+        syncChecks();
+        setStatus('Suas respostas anteriores foram carregadas.','ok');
+      } else { state.loadedComs=[]; setStatus(''); }
+    }).catch(function(){});
+  }
+  $('#nome').addEventListener('change',loadMine);
+  $('#nome').addEventListener('blur',loadMine);
+
+  $('#salvar').addEventListener('click',function(){
+    var nome=clean($('#nome').value), id=slugify(nome);
+    if(!id){ setStatus('Digite seu nome antes de enviar.','err'); $('#nome').focus(); return; }
+    if(!state.db){ setStatus('Envio indisponível no momento. Verifique a internet e tente de novo.','err'); return; }
+    var datas={}; state.mine.forEach(function(k){ datas[k]=true; });
+    var coms=state.loadedComs.slice(); if(coms.indexOf(state.comAco)<0) coms.push(state.comAco);
+    var btn=$('#salvar'); btn.disabled=true; setStatus('Enviando…');
+    state.db.doc('disponibilidade/'+id).set({
+      nome:nome, datas:datas, coms:coms, obs:$('#obs').value.trim().slice(0,300), atualizado:new Date().toISOString()
+    }).then(function(){
+      state.loaded=id; state.loadedComs=coms;
+      setStatus('Enviado, '+nome.split(' ')[0]+'. Você pode voltar e mudar quando precisar.','ok');
+    }).catch(function(e){
+      setStatus('Não foi possível enviar. Verifique a internet e tente de novo.','err');
+    }).then(function(){ btn.disabled=false; });
+  });
+
+  /* ---------- escala (coordenador) ---------- */
+  var viewMonth;
+  function setMonth(y,m){
+    viewMonth=new Date(y,m,1,12);
+    var first=new Date(viewMonth.getFullYear(),viewMonth.getMonth(),1,12);
+    var last=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0,12);
+    state.from=key(first); state.to=key(last);
+    $('#mes-nome').textContent=cap(MES[first.getMonth()])+' de '+first.getFullYear();
+    updateOpenUi();
+  }
+  function initRange(){ var n=new Date(); setMonth(n.getFullYear(), n.getMonth()+(n.getDate()>=15?1:0)); }
+  $('#mes-ant').addEventListener('click',function(){ setMonth(viewMonth.getFullYear(),viewMonth.getMonth()-1); renderEscala(); });
+  $('#mes-prox').addEventListener('click',function(){ setMonth(viewMonth.getFullYear(),viewMonth.getMonth()+1); renderEscala(); });
+
+  function renderComTabs(){
+    var root=$('#comtabs'); root.replaceChildren();
+    COMUNIDADES.forEach(function(c){
+      var b=el('button',{class:'comtab',type:'button','aria-pressed':String(c.id===state.com),text:c.curto});
+      b.addEventListener('click',function(){
+        state.com=c.id; lsSet('escala-com',c.id);
+        $('#horarios-box').open = missasDe(c.id).length===0;
+        renderEscala();
+      });
+      root.appendChild(b);
+    });
+  }
+
+  function saveMissas(cid,arr){
+    state.coms[cid]={missas:arr};
+    renderEscala(); buildSlots();
+    if(!state.db) return;
+    state.db.doc('comunidades/'+cid).set({missas:arr}).catch(function(){ toast('Não foi possível salvar os horários.'); });
+  }
+  function renderHorarios(){
+    var cfg=missasDe(state.com), list=$('#hlist'); list.replaceChildren();
+    $('#hsum').textContent='Horários fixos das missas ('+cfg.length+')';
+    $('#hnome').textContent=comDe(state.com).nome+'. A escala do mês é montada a partir destes dias e horários.';
+    if(!cfg.length) list.appendChild(el('p',{class:'sub',text:'Nenhuma missa cadastrada ainda. Adicione abaixo os dias e horários desta comunidade.'}));
+    cfg.map(function(ms,i){ return {ms:ms,i:i}; })
+      .sort(function(a,b){ return (a.ms.dow-b.ms.dow)||(toMin(normHora(a.ms.hora))-toMin(normHora(b.ms.hora))); })
+      .forEach(function(r){
+        var rm=el('button',{class:'btn small',type:'button',text:'Remover'});
+        var armed=false, timer;
+        rm.addEventListener('click',function(){
+          if(!armed){ armed=true; rm.textContent='Confirmar remoção'; timer=setTimeout(function(){ armed=false; rm.textContent='Remover'; },4000); return; }
+          clearTimeout(timer);
+          var arr=missasDe(state.com).slice(); arr.splice(r.i,1); saveMissas(state.com,arr);
+        });
+        list.appendChild(el('div',{class:'hrow'},
+          el('span',{class:'hn',text:DOW[r.ms.dow]}),
+          el('span',{class:'ht',text:r.ms.hora}),
+          el('span',{class:'pill '+(r.ms.completa?'ok':'idle'),text:r.ms.completa?'Escala completa':'Escala simples'}),
+          rm));
+      });
+  }
+  $('#h-add').addEventListener('click',function(){
+    var st=$('#h-status'), h=normHora($('#h-hora').value), dow=Number($('#h-dow').value);
+    if(!h){ st.textContent='Informe o horário, por exemplo 19:30.'; return; }
+    var arr=missasDe(state.com).slice();
+    if(arr.some(function(ms){ return ms.dow===dow&&normHora(ms.hora)===h; })){ st.textContent='Esta missa já está cadastrada.'; return; }
+    arr.push({dow:dow,hora:h,completa:$('#h-tipo').value==='full'});
+    st.textContent='';
+    saveMissas(state.com,arr);
+    toast('Missa adicionada.');
+  });
+
+  var chain={};
+  function persist(k){
+    if(!state.db) return;
+    chain[k]=(chain[k]||Promise.resolve()).then(function(){
+      var cur=state.escala[k]||{};
+      return state.db.doc('escala/'+k).set({data:k,funcoes:cur.funcoes||{},solene:!!cur.solene,obs:cur.obs||'',fx:cur.fx||[]});
+    }).catch(function(){ toast('Não foi possível salvar a escala. Tente de novo.'); });
+  }
+  function setFunc(k,fid,val){
+    var cur=state.escala[k]||{data:k,funcoes:{}};
+    var f=Object.assign({},cur.funcoes);
+    if(val) f[fid]=val; else delete f[fid];
+    state.escala[k]=Object.assign({},cur,{data:k,funcoes:f});
+    persist(k);
+  }
+  function setSolene(k,v){
+    var cur=state.escala[k]||{data:k,funcoes:{}};
+    state.escala[k]=Object.assign({},cur,{solene:!!v});
+    persist(k);
+  }
+  function addFx(k,n){
+    var cur=state.escala[k]||{data:k,funcoes:{}};
+    var fx=(cur.fx||[]).slice();
+    if(fx.length>=8){ toast('Limite de 8 funções a mais por missa.'); return false; }
+    fx.push({id:'fx'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),nome:n});
+    state.escala[k]=Object.assign({},cur,{fx:fx});
+    persist(k); return true;
+  }
+  function removeFx(k,id){
+    var cur=state.escala[k]; if(!cur) return;
+    var f=Object.assign({},cur.funcoes); delete f[id];
+    state.escala[k]=Object.assign({},cur,{fx:(cur.fx||[]).filter(function(x){ return x.id!==id; }),funcoes:f});
+    persist(k);
+  }
+  function setObs(k,v){
+    var cur=state.escala[k]||{data:k,funcoes:{}};
+    state.escala[k]=Object.assign({},cur,{obs:clean(v).slice(0,120)});
+    persist(k);
+  }
+  function setHora(m,v){
+    if(!state.db) return;
+    var ref=state.db.doc('horarios/'+m.key);
+    if(v){ state.horarios[m.key]={hora:v}; ref.set({hora:v}).catch(function(){ toast('Não foi possível salvar o horário.'); }); }
+    else { delete state.horarios[m.key]; ref.delete().catch(function(){}); }
+  }
+
+  function massCard(m){
+    var funcs = funcsOf(m);
+    var meta = state.escala[m.key]||{};
+    var asg = meta.funcoes||{};
+    var hh = massHora(m);
+    var req = funcs.filter(function(f){return !f.opc;}).length;
+    var filled = funcs.filter(function(f){return !f.opc && asg[f.id];}).length;
+    var counts={}; funcs.forEach(function(f){ if(asg[f.id]) counts[asg[f.id]]=(counts[asg[f.id]]||0)+1; });
+    var dupIds=Object.keys(counts).filter(function(k){return counts[k]>1;});
+    var title = m.extra
+      ? el('h3',{class:'raw',text:m.titulo},el('small',{text:DOWS[m.dow]+' '+dm(m.date)+' às '+hh}))
+      : el('h3',{text:DOW[m.dow]+' '+dm(m.date)},el('small',{text:'às '+hh}));
+    var pill;
+    if(dupIds.length) pill=el('span',{class:'pill bad',text:'Nome repetido'});
+    else if(filled===req) pill=el('span',{class:'pill ok',text:'Completa'});
+    else if(!Object.keys(asg).length) pill=el('span',{class:'pill idle',text:'Sem escala'});
+    else pill=el('span',{class:'pill warn',text:'Faltam '+(req-filled)});
+    var tags=el('div',{class:'row'},
+      m.extra?el('span',{class:'pill extra',text:'Extra'}):null,
+      meta.solene?el('span',{class:'pill solene',text:'Solene'}):null,
+      pill);
+    var card=el('div',{class:'card'+(meta.solene?' sol':'')}, el('div',{class:'card-head'},title,tags));
+
+    var ids=sortedIds();
+    var avail=ids.filter(function(id){ return state.disp[id].datas && state.disp[id].datas[m.key]; });
+    var daCom=ids.filter(function(id){ return avail.indexOf(id)<0 && inCom(id,m.com); });
+    var outros=ids.filter(function(id){ return avail.indexOf(id)<0 && daCom.indexOf(id)<0; });
+    var line=el('div',{class:'avail-line'});
+    line.appendChild(el('span',{class:'lab',text:'Disponíveis ('+avail.length+')'}));
+    var chips=el('div',{class:'chips'});
+    if(avail.length) avail.forEach(function(id){ chips.appendChild(el('span',{class:'chip',text:nomeDe(id)})); });
+    else chips.appendChild(el('span',{class:'sub',text:'Ninguém marcou esta data.'}));
+    line.appendChild(chips);
+    card.appendChild(line);
+    if(avail.length<req) card.appendChild(el('p',{class:'warnline',text:'Esta missa precisa de '+req+' acólitos e só '+avail.length+' marcaram a data.'}));
+
+    var grid=el('div',{class:'funcs'});
+    funcs.forEach(function(f){
+      var sid='s-'+m.key+'-'+f.id, cur=asg[f.id]||'';
+      var s=el('select',{id:sid});
+      s.appendChild(el('option',{value:'',text:'—'}));
+      function group(label,list){
+        if(!list.length) return;
+        var g=el('optgroup',{label:label});
+        list.forEach(function(id){ g.appendChild(el('option',{value:id,text:nomeDe(id)})); });
+        s.appendChild(g);
+      }
+      group('Disponíveis',avail);
+      group('Desta comunidade, sem data marcada',daCom);
+      group('Outros acólitos',outros);
+      if(cur && ids.indexOf(cur)<0) s.appendChild(el('option',{value:cur,text:cur}));
+      s.value=cur;
+      s.addEventListener('change',function(){
+        s.blur();
+        setFunc(m.key,f.id,s.value);
+        renderEscala();
+      });
+      var fnBox=el('div',{class:'fn'+(cur&&counts[cur]>1?' dup':'')},
+        el('label',{class:'lab',for:sid,text:f.nome},f.opc?el('span',{text:f.custom?' (extra)':' (opcional)'}):null),
+        s);
+      if(f.custom){
+        var rb=el('button',{class:'btn small',type:'button',text:'Remover função'});
+        var rArmed=false, rTimer;
+        rb.addEventListener('click',function(){
+          if(!rArmed){ rArmed=true; rb.textContent='Confirmar remoção'; rTimer=setTimeout(function(){ rArmed=false; rb.textContent='Remover função'; },4000); return; }
+          clearTimeout(rTimer); removeFx(m.key,f.id); renderEscala();
+        });
+        fnBox.appendChild(rb);
+      }
+      grid.appendChild(fnBox);
+    });
+    card.appendChild(grid);
+    if(dupIds.length) card.appendChild(el('p',{class:'warnline bad',text:'Mesmo acólito em mais de uma função: '+dupIds.map(nomeDe).join(', ')+'.'}));
+
+    var fi=el('input',{type:'text',id:'fxn-'+m.key,maxlength:30,autocomplete:'off',list:'sug-func',placeholder:'Ex.: Acólito de apoio, Galhetas',style:'flex:1 1 180px'});
+    var fb=el('button',{class:'btn small',type:'button',text:'+ Adicionar função'});
+    fb.addEventListener('click',function(){
+      var n=clean(fi.value).slice(0,30);
+      if(!n){ toast('Digite o nome da função.'); fi.focus(); return; }
+      if(addFx(m.key,n)) renderEscala();
+    });
+    fi.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); fi.blur(); fb.click(); } });
+    card.appendChild(el('div',{class:'field'},el('label',{class:'lab',for:'fxn-'+m.key,text:'Precisa de mais gente neste dia?'}),el('div',{class:'row'},fi,fb)));
+
+    var oi=el('input',{type:'text',id:'o-'+m.key,value:meta.obs||'',maxlength:120,autocomplete:'off',placeholder:'Ex.: Novena, missa de 7º dia, celebração especial'});
+    oi.addEventListener('change',function(){ setObs(m.key,oi.value); });
+    card.appendChild(el('div',{class:'field'},el('label',{class:'lab',for:'o-'+m.key,text:'Observação do dia'}),oi));
+
+    var ctrl=el('div',{class:'ctrl'});
+    var cb=el('input',{type:'checkbox',id:'sol-'+m.key});
+    cb.checked=!!meta.solene;
+    cb.addEventListener('change',function(){ setSolene(m.key,cb.checked); renderEscala(); });
+    ctrl.appendChild(el('label',{class:'chk',for:'sol-'+m.key},cb,el('span',{text:'Missa solene'})));
+    var hi=el('input',{type:'text',id:'h-'+m.key,value:hh,maxlength:10,autocomplete:'off'});
+    hi.addEventListener('change',function(){
+      var v=normHora(hi.value);
+      if(!v){ toast('Horário inválido. Use, por exemplo, 19h30.'); hi.value=massHora(m); return; }
+      setHora(m,v===m.hora?'':v);
+      renderEscala(); buildSlots();
+    });
+    ctrl.appendChild(el('div',{class:'hh'},el('label',{class:'lab',for:'h-'+m.key,text:'Horário'}),hi));
+    if(m.extra){
+      var del=el('button',{class:'btn small',type:'button',text:'Excluir missa'});
+      var armed=false, timer;
+      del.addEventListener('click',function(){
+        if(!armed){ armed=true; del.textContent='Confirmar exclusão'; timer=setTimeout(function(){ armed=false; del.textContent='Excluir missa'; },4000); return; }
+        clearTimeout(timer);
+        Promise.all([state.db.doc('extras/'+m.id).delete(),state.db.doc('escala/'+m.key).delete(),state.db.doc('horarios/'+m.key).delete()])
+          .catch(function(){ toast('Não foi possível excluir a missa.'); });
+      });
+      ctrl.appendChild(del);
+    }
+    card.appendChild(ctrl);
+    return card;
+  }
+
+  function exportText(masses){
+    var parts=[];
+    masses.forEach(function(m){
+      var funcs=funcsOf(m);
+      var meta=state.escala[m.key]||{};
+      var asg=meta.funcoes||{};
+      if(!hasPublic(m)) return;
+      var quando=cap(DOW[m.dow])+' '+dm(m.date)+' às '+massHora(m);
+      var lines=['*'+(m.extra?m.titulo+' - '+quando:quando)+'*'+(meta.solene?' (Missa solene)':'')];
+      if(meta.obs) lines.push('Obs.: '+meta.obs);
+      funcs.forEach(function(f){
+        if(asg[f.id]) lines.push(f.nome+': '+nomeDe(asg[f.id]));
+        else if(!f.opc) lines.push(f.nome+': —');
+      });
+      parts.push(lines.join('\n'));
+    });
+    return parts.length ? '*Escala dos acólitos*\n*'+comDe(state.com).nome+' - '+MES[viewMonth.getMonth()]+' de '+viewMonth.getFullYear()+'*\n\n'+parts.join('\n\n') : '';
+  }
+
+  function renderRespostas(masses){
+    var wrap=$('#resp-wrap'); wrap.replaceChildren();
+    var ids=sortedIds().filter(function(id){ return inCom(id,state.com); });
+    if(!ids.length){ wrap.appendChild(el('p',{class:'sub',text:'Ninguém desta comunidade respondeu ainda.'})); return; }
+    var tb=el('tbody');
+    ids.forEach(function(id){
+      var d=state.disp[id]||{}, n=masses.filter(function(m){return d.datas&&d.datas[m.key];}).length;
+      var upd=''; if(d.atualizado){ var u=new Date(d.atualizado); if(!isNaN(u)) upd=pad(u.getDate())+'/'+pad(u.getMonth()+1)+' '+pad(u.getHours())+':'+pad(u.getMinutes()); }
+      var nameCell=el('td',null,el('div',{text:nomeDe(id)}));
+      if(d.obs) nameCell.appendChild(el('div',{class:'obs',text:d.obs}));
+      var rm=el('button',{class:'btn small',type:'button',text:'Remover'});
+      var armed=false, timer;
+      rm.addEventListener('click',function(){
+        if(!armed){ armed=true; rm.textContent='Confirmar remoção'; timer=setTimeout(function(){ armed=false; rm.textContent='Remover'; },4000); return; }
+        clearTimeout(timer);
+        state.db.doc('disponibilidade/'+id).delete().catch(function(){ toast('Não foi possível remover.'); });
+      });
+      tb.appendChild(el('tr',null,nameCell,el('td',{class:'n',text:n+' de '+masses.length}),el('td',{class:'n',text:upd}),el('td',null,rm)));
+    });
+    wrap.appendChild(el('table',{class:'resp'},
+      el('thead',null,el('tr',null,el('th',{text:'Acólito'}),el('th',{text:'Datas'}),el('th',{text:'Enviado em'}),el('th',{text:''}))),tb));
+  }
+
+  function renderEscala(){
+    if(!state.editor) return;
+    var cards=$('#cards');
+    var a=document.activeElement;
+    if(a && a.matches && a.matches('#cards select, #cards input[type=text]')){ state.pending=true; return; }
+    state.pending=false;
+    renderComTabs(); renderHorarios();
+    cards.replaceChildren();
+    $('#extra-box').hidden=false;
+    if(state.from){ $('#x-data').min=state.from; $('#x-data').max=state.to; }
+    var masses=allMasses(state.from,state.to,state.com);
+    if(!masses.length){
+      cards.appendChild(el('div',{class:'empty',text:missasDe(state.com).length
+        ? 'Não há missas neste mês.'
+        : 'Esta comunidade ainda não tem horários. Cadastre os dias e horários das missas em "Horários fixos das missas".'}));
+    } else masses.forEach(function(m){ cards.appendChild(massCard(m)); });
+    state.lastMasses=masses;
+    var txt=exportText(masses);
+    $('#export').hidden=!txt; $('#texto').value=txt;
+    $('#respostas').hidden=false;
+    renderRespostas(masses);
+  }
+  $('#cards').addEventListener('focusout',function(){ if(state.pending) setTimeout(renderEscala,0); });
+
+  $('#copiar').addEventListener('click',function(){
+    var ta=$('#texto');
+    var p=(navigator.clipboard&&navigator.clipboard.writeText)?navigator.clipboard.writeText(ta.value):Promise.reject();
+    p.then(function(){ toast('Texto copiado.'); }).catch(function(){ ta.focus(); ta.select(); toast('Selecione o texto e copie.'); });
+  });
+
+  function buildPdf(){
+    var J=window.jspdf&&window.jspdf.jsPDF; if(!J) return null;
+    var masses=(state.lastMasses||[]).filter(hasPublic);
+    if(!masses.length) return null;
+    var doc=new J({unit:'mm',format:'a4'}), W=210, H=297, M=18, y=14;
+    var GOLD=[168,128,36], GOLDL=[226,190,104], DEEP=[30,78,56], GREEN=[40,100,72], INK=[31,43,37], MUTE=[98,115,106];
+    function col(c){ doc.setTextColor(c[0],c[1],c[2]); }
+    function fill(c){ doc.setFillColor(c[0],c[1],c[2]); }
+    function stroke(c){ doc.setDrawColor(c[0],c[1],c[2]); }
+    function ensure(h){ if(y+h>H-M){ doc.addPage(); y=M; } }
+    function cross(cx,cy,s,c){ fill(c); doc.rect(cx-s*.09,cy-s*.5,s*.18,s,'F'); doc.rect(cx-s*.34,cy-s*.28,s*.68,s*.17,'F'); }
+
+    var img=document.getElementById('brasao');
+    if(img&&img.naturalWidth){
+      try{
+        var cv=document.createElement('canvas'); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+        var cx=cv.getContext('2d'); cx.fillStyle='#ffffff'; cx.fillRect(0,0,cv.width,cv.height); cx.drawImage(img,0,0);
+        var lh=36, lw=lh*img.naturalWidth/img.naturalHeight;
+        doc.addImage(cv.toDataURL('image/jpeg',0.95),'JPEG',(W-lw)/2,y,lw,lh);
+        y+=lh+6;
+      }catch(e){}
+    }
+    doc.setFont('times','bold'); doc.setFontSize(24); col(INK);
+    doc.text('Escala dos Acólitos',W/2,y+7,{align:'center'}); y+=11;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11.5); col(INK);
+    doc.text(comDe(state.com).nome,W/2,y+3.5,{align:'center'}); y+=6;
+    doc.setFontSize(9.5); col(MUTE);
+    doc.text('Paróquia Santa Rosa de Lima  -  Poá/SP',W/2,y+3,{align:'center'}); y+=8;
+    doc.setFont('times','bold'); doc.setFontSize(14); col(GOLD);
+    doc.text(cap(MES[viewMonth.getMonth()])+' de '+viewMonth.getFullYear(),W/2,y+4,{align:'center'}); y+=7;
+    stroke(GOLDL); doc.setLineWidth(.5); doc.line(W/2-22,y+1,W/2+22,y+1); y+=10;
+
+    masses.forEach(function(m){
+      var funcs=funcsOf(m), meta=state.escala[m.key], asg=meta.funcoes||{}, sol=!!meta.solene;
+      var rows=funcs.filter(function(f){ return asg[f.id] || !f.opc; });
+      var when=cap(DOW[m.dow])+' '+dm(m.date)+'  -  às '+massHora(m);
+      var inner=W-2*M;
+      doc.setFont('helvetica','italic'); doc.setFontSize(10);
+      var ol=meta.obs?doc.splitTextToSize('Obs.: '+meta.obs,inner-(sol?20:8)):[];
+      var oh=ol.length?ol.length*4.8+4:0;
+      function drawObs(ox,oy){ doc.setFont('helvetica','italic'); doc.setFontSize(10); col(sol?GOLD:MUTE); ol.forEach(function(t,i){ doc.text(t,ox,oy+i*4.8); }); }
+      if(sol){
+        var bandH=m.extra?27:20, rowH=8.2, total=bandH+oh+rows.length*rowH+5;
+        ensure(total+8);
+        stroke(GOLD); doc.setLineWidth(1); doc.rect(M,y,inner,total);
+        doc.setLineWidth(.25); doc.rect(M+1.5,y+1.5,inner-3,total-3);
+        fill(DEEP); doc.rect(M+1.5,y+1.5,inner-3,bandH-1.5,'F');
+        doc.setFont('times','bold'); doc.setFontSize(9); col(GOLDL);
+        var lab='M I S S A   S O L E N E', lw2=doc.getTextWidth(lab);
+        doc.text(lab,W/2,y+8,{align:'center'});
+        cross(W/2-lw2/2-6,y+6.4,4.2,GOLDL); cross(W/2+lw2/2+6,y+6.4,4.2,GOLDL);
+        doc.setFontSize(m.extra?16:15); doc.setTextColor(255,255,255);
+        doc.text(m.extra?m.titulo:when,W/2,y+16,{align:'center'});
+        if(m.extra){ doc.setFont('helvetica','normal'); doc.setFontSize(10.5); col(GOLDL); doc.text(when,W/2,y+22.5,{align:'center'}); }
+        if(oh) drawObs(M+9,y+bandH+5);
+        var ry=y+bandH+oh;
+        rows.forEach(function(f,i){
+          ry+=rowH;
+          doc.setFont('helvetica','normal'); doc.setFontSize(10.5); col(MUTE);
+          doc.text(f.nome,M+9,ry-2.6);
+          doc.setFont('times','bold'); doc.setFontSize(13); col(INK);
+          doc.text(asg[f.id]?nomeDe(asg[f.id]):'-',M+56,ry-2.4);
+          if(i<rows.length-1){ stroke([234,221,182]); doc.setLineWidth(.2); doc.line(M+9,ry,W-M-9,ry); }
+        });
+        y+=total+10;
+      } else {
+        var bh=m.extra?14:9, rh=7.5, tot=bh+oh+rows.length*rh+2;
+        ensure(tot+8);
+        fill([232,243,236]); doc.rect(M,y,inner,bh,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(12.5); col(GREEN);
+        if(m.extra){
+          doc.text(m.titulo,M+3,y+5.8);
+          doc.setFont('helvetica','normal'); doc.setFontSize(10); col(MUTE); doc.text(when,M+3,y+11);
+        } else doc.text(when,M+3,y+6.3);
+        if(oh) drawObs(M+3,y+bh+5);
+        var yy=y+bh+oh;
+        rows.forEach(function(f){
+          yy+=rh;
+          doc.setFont('helvetica','normal'); doc.setFontSize(11); col(MUTE);
+          doc.text(f.nome,M+3,yy-2.2);
+          doc.setFont('helvetica','bold'); col(INK);
+          doc.text(asg[f.id]?nomeDe(asg[f.id]):'-',M+48,yy-2.2);
+          stroke([224,231,226]); doc.setLineWidth(.2); doc.line(M,yy,W-M,yy);
+        });
+        y+=tot+8;
+      }
+    });
+    return doc.output('arraybuffer');
+  }
+
+  $('#pdf').addEventListener('click',function(){
+    if(!state.dl){ toast('Download indisponível aqui. Use Copiar texto.'); return; }
+    var buf=null; try{ buf=buildPdf(); }catch(e){}
+    if(!buf){ toast('Não foi possível gerar o PDF.'); return; }
+    state.dl.save({filename:'escala-'+state.com+'-'+state.from.slice(0,7)+'.pdf',data:buf}).then(function(){ toast('PDF salvo.'); })
+      .catch(function(e){ if(e&&e.code==='declined') return; toast('Não foi possível baixar o PDF.'); });
+  });
+
+  /* ---------- missa extra ---------- */
+  function resetExtra(){
+    $('#extra-form').hidden=true; $('#x-titulo').value=''; $('#x-data').value='';
+    $('#x-hora').value='19:30'; $('#x-tipo').value='full'; $('#x-solene').checked=false;
+    $('#x-status').textContent=''; $('#x-status').className='status';
+  }
+  function extraMsg(t){ var s=$('#x-status'); s.textContent=t; s.className='status err'; }
+  $('#extra-abrir').addEventListener('click',function(){
+    var f=$('#extra-form'); f.hidden=!f.hidden;
+    if(!f.hidden){ $('#x-data').min=state.from; $('#x-data').max=state.to; $('#x-titulo').focus(); }
+  });
+  $('#x-cancel').addEventListener('click',resetExtra);
+  $('#extra-form').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var titulo=clean($('#x-titulo').value).slice(0,40), data=$('#x-data').value, h=normHora($('#x-hora').value);
+    if(!titulo){ extraMsg('Dê um nome à celebração.'); $('#x-titulo').focus(); return; }
+    if(!data||data.slice(0,7)!==state.from.slice(0,7)){ extraMsg('Escolha uma data dentro de '+$('#mes-nome').textContent+'.'); $('#x-data').focus(); return; }
+    if(!h){ extraMsg('Informe o horário, por exemplo 19:30.'); $('#x-hora').focus(); return; }
+    if(!state.db){ extraMsg('Salvamento indisponível neste acesso.'); return; }
+    var id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    var solene=$('#x-solene').checked, btn=$('#x-salvar'); btn.disabled=true;
+    state.db.doc('extras/'+id).set({com:state.com,data:data,hora:h,titulo:titulo,completa:$('#x-tipo').value==='full'})
+      .then(function(){ if(solene) return state.db.doc('escala/x-'+id).set({data:'x-'+id,funcoes:{},solene:true}); })
+      .then(function(){ resetExtra(); toast('Missa extra adicionada.'); })
+      .catch(function(){ extraMsg('Não foi possível salvar. Tente de novo.'); })
+      .then(function(){ btn.disabled=false; });
+  });
+
+  $('#abrir-mes').addEventListener('click',function(){
+    if(!state.db) return;
+    var mk=state.from.slice(0,7), nome=MES[Number(mk.slice(5))-1];
+    state.db.doc('config/disponibilidade').set({mes:mk})
+      .then(function(){ toast('Disponibilidade aberta para '+nome+'.'); })
+      .catch(function(){ toast('Não foi possível abrir o mês.'); });
+  });
+
+  /* ---------- início ---------- */
+  buildSlots();
+  initRange();
+  var saved=lsGet('acolitos-nome'); if(saved) $('#nome').value=saved;
+
+  var use=function(n){ return (window.claude&&window.claude.use)?window.claude.use(n):Promise.resolve(null); };
+  Promise.all([use('db'),use('user'),use('downloads')]).then(function(r){
+    var db=r[0], user=r[1];
+    state.db=db; state.dl=r[2];
+    if(!db){ $('#dbnotice').hidden=false; return; }
+    function snapMap(snap,fn){ var o={}; snap.docs.forEach(function(d){ o[d.id]=fn?fn(d):d.data(); }); return o; }
+    db.doc('config/disponibilidade').onSnapshot(function(snap){
+      var d=snap.exists?snap.data():null, nk=(d&&d.mes)?d.mes:null;
+      if(nk!==state.open){ state.open=nk; buildSlots(); }
+    },function(){});
+    db.collection('extras').onSnapshot(function(snap){ state.extras=snapMap(snap); buildSlots(); renderEscala(); },function(){});
+    db.collection('horarios').onSnapshot(function(snap){ state.horarios=snapMap(snap); buildSlots(); renderEscala(); },function(){});
+    db.collection('comunidades').onSnapshot(function(snap){ state.coms=snapMap(snap); buildSlots(); renderEscala(); },function(){});
+    var ed = user ? user.canEdit() : Promise.resolve(false);
+    ed.then(function(v){
+      state.editor=!!v;
+      if(!state.editor) return;
+      $('#tabs').hidden=false; $('#aberto-row').hidden=false;
+      $('#horarios-box').open = missasDe(state.com).length===0;
+      db.collection('disponibilidade').onSnapshot(function(snap){ state.disp=snapMap(snap); renderEscala(); },function(){ toast('Não foi possível carregar as respostas.'); });
+      db.collection('escala').onSnapshot(function(snap){
+        state.escala=snapMap(snap,function(d){ return JSON.parse(JSON.stringify(d.data())); }); renderEscala();
+      },function(){ toast('Não foi possível carregar a escala.'); });
+      renderEscala();
+      if(location.hash==='#escala') showTab('escala');
+    });
+    if($('#nome').value) loadMine();
+  });
+})();
+</script>
+<script>
+(function(){
+  var $ = function(s){ return document.querySelector(s); };
+  var DONO = 'davirpoaa@gmail.com';
+  function aviso(t){ var el=$('#toast'); el.textContent=t; el.hidden=false; setTimeout(function(){ el.hidden=true; },5000); }
+
+  window.claude.use('auth').then(function(a){
+    if(!a) return;
+    $('#auth-row').hidden=false;
+    var email=a.email(), btn=$('#auth-btn');
+    if(email){
+      $('#auth-info').textContent='Conectado como '+email;
+      btn.textContent='Sair';
+      btn.addEventListener('click',function(){ a.logout(); });
+    } else {
+      btn.addEventListener('click',function(){
+        a.login().catch(function(){ aviso('Não foi possível entrar. Se o navegador bloqueou a janela, libere pop-ups para este site.'); });
+      });
+    }
+  });
+
+  Promise.all([window.claude.use('db'),window.claude.use('user')]).then(function(r){
+    var db=r[0], user=r[1];
+    if(!db||!user) return;
+    user.canEdit().then(function(ok){
+      if(!ok) return;
+      $('#coord-box').hidden=false;
+      var emails=[];
+      var ref=db.doc('admin/coordenadores');
+      function render(){
+        var list=$('#coord-list'); list.replaceChildren();
+        function row(email,dono){
+          var d=document.createElement('div'); d.className='hrow';
+          var n=document.createElement('span'); n.className='hn'; n.style.textTransform='none'; n.textContent=email; d.appendChild(n);
+          if(dono){ var t=document.createElement('span'); t.className='pill ok'; t.textContent='Dono'; d.appendChild(t); }
+          else {
+            var b=document.createElement('button'); b.className='btn small'; b.type='button'; b.textContent='Remover';
+            var armed=false, timer;
+            b.addEventListener('click',function(){
+              if(!armed){ armed=true; b.textContent='Confirmar remoção'; timer=setTimeout(function(){ armed=false; b.textContent='Remover'; },4000); return; }
+              clearTimeout(timer);
+              ref.set({emails:emails.filter(function(x){ return x!==email; })}).catch(function(){ aviso('Não foi possível remover.'); });
+            });
+            d.appendChild(b);
+          }
+          list.appendChild(d);
+        }
+        row(DONO,true);
+        emails.forEach(function(e){ row(e,false); });
+      }
+      ref.onSnapshot(function(s){
+        var d=s.exists?s.data():null;
+        emails=(d&&Array.isArray(d.emails))?d.emails:[];
+        render();
+      },function(){});
+      $('#coord-add').addEventListener('click',function(){
+        var v=($('#coord-email').value||'').trim().toLowerCase(), st=$('#coord-status');
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ st.textContent='Digite um e-mail válido.'; return; }
+        if(v===DONO||emails.indexOf(v)>=0){ st.textContent='Este e-mail já tem acesso.'; return; }
+        st.textContent='';
+        ref.set({emails:emails.concat([v])}).then(function(){ $('#coord-email').value=''; aviso('Coordenador adicionado. Ele precisa entrar com essa conta Google.'); })
+          .catch(function(){ st.textContent='Não foi possível adicionar.'; });
+      });
+    });
+  });
+})();
+</script>
+
+
+</body>
+</html>
