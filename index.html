@@ -113,7 +113,7 @@ input[type=text]:focus,input[type=date]:focus,input[type=time]:focus,select:focu
 .chip.off{background:var(--surface-2);color:var(--muted)}
 .avail-line{display:flex;flex-direction:column;gap:6px;font-size:13px}
 .avail-line .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-.funcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 12px}
+.funcs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
 .fn{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fn .lab span{font-weight:400}
 .fn.dup select{border-color:var(--bad)}
@@ -240,7 +240,7 @@ details.block[open]>summary{margin-bottom:12px}
 
       <details class="block" id="coord-box" hidden>
         <summary>Coordenadores com acesso</summary>
-        <p class="sub">Quem entra com estes e-mails (conta Google) vê e monta a escala.</p>
+        <p class="sub">Quem entra com estes e-mails (conta Google) vê e monta a escala. Marque as comunidades que cada coordenador pode ver.</p>
         <div id="coord-list"></div>
         <div class="hadd">
           <div class="field"><label class="lab" for="coord-email">E-mail Google do coordenador</label>
@@ -332,6 +332,7 @@ details.block[open]>summary{margin-bottom:12px}
 <div class="toast" id="toast" hidden></div>
 
 <script>
+window.__GH=true;
 /* Conexão com o Firebase. Cole aqui a configuração do seu projeto (Configurações do projeto > Seus aplicativos). */
 (function(){
   var FB = {
@@ -445,10 +446,10 @@ details.block[open]>summary{margin-bottom:12px}
     {id:'missal',nome:'Missal'},{id:'microfone',nome:'Microfone'},{id:'a3',nome:'Acólito 3',opc:true}
   ];
   var FUNC_DOM = [
-    {id:'turibulo',nome:'Turíbulo'},{id:'missal',nome:'Missal'},
+    {id:'turibulo',nome:'Turíbulo'},{id:'naveta',nome:'Naveta'},
+    {id:'missal',nome:'Missal'},{id:'microfone',nome:'Microfone'},
     {id:'tocha1',nome:'Tocha 1'},{id:'tocha2',nome:'Tocha 2'},
-    {id:'microfone',nome:'Microfone'},{id:'cruz',nome:'Cruz'},
-    {id:'naveta',nome:'Naveta'},{id:'ofertorio',nome:'Ofertório',opc:true}
+    {id:'cruz',nome:'Cruz'},{id:'ofertorio',nome:'Ofertório',opc:true}
   ];
   // Comunidades e horários iniciais. O coordenador pode mudar os horários na própria página.
   var COMUNIDADES = [
@@ -469,7 +470,7 @@ details.block[open]>summary{margin-bottom:12px}
 
   var state = {
     disp:{}, escala:{}, extras:{}, horarios:{}, coms:{},
-    mine:new Set(), loaded:null, loadedComs:[], editor:false,
+    mine:new Set(), loaded:null, loadedComs:[], editor:false, allowed:(window.__GH?[]:null),
     from:'', to:'', pending:false, db:null, dl:null, open:null,
     comAco:validCom(lsGet('acolitos-com')), com:validCom(lsGet('escala-com'))
   };
@@ -709,9 +710,17 @@ details.block[open]>summary{margin-bottom:12px}
   $('#mes-ant').addEventListener('click',function(){ setMonth(viewMonth.getFullYear(),viewMonth.getMonth()-1); renderEscala(); });
   $('#mes-prox').addEventListener('click',function(){ setMonth(viewMonth.getFullYear(),viewMonth.getMonth()+1); renderEscala(); });
 
+  // Comunidades que este coordenador pode ver (null = todas). Definido pela página do GitHub.
+  function allowedComs(){ return COMUNIDADES.filter(function(c){ return !state.allowed||state.allowed.indexOf(c.id)>=0; }); }
+  window.__setAllowedComs=function(list){
+    state.allowed=Array.isArray(list)?list:null;
+    var ok=allowedComs();
+    if(ok.length&&!ok.some(function(c){ return c.id===state.com; })) state.com=ok[0].id;
+    renderEscala();
+  };
   function renderComTabs(){
     var root=$('#comtabs'); root.replaceChildren();
-    COMUNIDADES.forEach(function(c){
+    allowedComs().forEach(function(c){
       var b=el('button',{class:'comtab',type:'button','aria-pressed':String(c.id===state.com),text:c.curto});
       b.addEventListener('click',function(){
         state.com=c.id; lsSet('escala-com',c.id);
@@ -971,6 +980,13 @@ details.block[open]>summary{margin-bottom:12px}
     var a=document.activeElement;
     if(a && a.matches && a.matches('#cards select, #cards input[type=text]')){ state.pending=true; return; }
     state.pending=false;
+    var semAcesso=!allowedComs().length;
+    $('#horarios-box').hidden=semAcesso;
+    if(semAcesso){
+      renderComTabs(); cards.replaceChildren(el('div',{class:'empty',text:'Nenhuma comunidade liberada para você ainda. Peça ao dono do sistema para liberar.'}));
+      $('#extra-box').hidden=true; $('#export').hidden=true; $('#respostas').hidden=true;
+      return;
+    }
     renderComTabs(); renderHorarios();
     cards.replaceChildren();
     $('#extra-box').hidden=false;
@@ -1185,46 +1201,74 @@ details.block[open]>summary{margin-bottom:12px}
     }
   });
 
-  Promise.all([window.claude.use('db'),window.claude.use('user')]).then(function(r){
-    var db=r[0], user=r[1];
-    if(!db||!user) return;
+  var COMS=[['matriz','Matriz'],['santo-antonio','Santo Antônio'],['sagrada-familia','Sagrada Família'],['aparecida','N. S. Aparecida']];
+  Promise.all([window.claude.use('db'),window.claude.use('user'),window.claude.use('auth')]).then(function(r){
+    var db=r[0], user=r[1], au=r[2];
+    if(!db||!user||!au) return;
+    var meu=(au.email()||'').toLowerCase(), dono=(meu===DONO);
     user.canEdit().then(function(ok){
       if(!ok) return;
-      $('#coord-box').hidden=false;
-      var emails=[];
+      var emails=[], coms={};
       var ref=db.doc('admin/coordenadores');
+      function salvar(e,c){ return ref.set({emails:e,coms:c}); }
+      if(dono) window.__setAllowedComs(null);
       function render(){
         var list=$('#coord-list'); list.replaceChildren();
-        function row(email,dono){
-          var d=document.createElement('div'); d.className='hrow';
-          var n=document.createElement('span'); n.className='hn'; n.style.textTransform='none'; n.textContent=email; d.appendChild(n);
-          if(dono){ var t=document.createElement('span'); t.className='pill ok'; t.textContent='Dono'; d.appendChild(t); }
+        function row(email,isDono){
+          var wrap=document.createElement('div'); wrap.style.cssText='padding:8px 0;border-bottom:1px solid var(--line)';
+          var d=document.createElement('div'); d.className='row between';
+          var n=document.createElement('span'); n.className='hn'; n.style.cssText='text-transform:none;font-weight:600'; n.textContent=email; d.appendChild(n);
+          if(isDono){ var t=document.createElement('span'); t.className='pill ok'; t.textContent='Dono · vê todas as comunidades'; d.appendChild(t); }
           else {
             var b=document.createElement('button'); b.className='btn small'; b.type='button'; b.textContent='Remover';
             var armed=false, timer;
             b.addEventListener('click',function(){
               if(!armed){ armed=true; b.textContent='Confirmar remoção'; timer=setTimeout(function(){ armed=false; b.textContent='Remover'; },4000); return; }
               clearTimeout(timer);
-              ref.set({emails:emails.filter(function(x){ return x!==email; })}).catch(function(){ aviso('Não foi possível remover.'); });
+              var nc=Object.assign({},coms); delete nc[email];
+              salvar(emails.filter(function(x){ return x!==email; }),nc).catch(function(){ aviso('Não foi possível remover.'); });
             });
             d.appendChild(b);
           }
-          list.appendChild(d);
+          wrap.appendChild(d);
+          if(!isDono){
+            var lab=document.createElement('div'); lab.className='sub'; lab.style.margin='6px 0 2px'; lab.textContent='Comunidades que pode ver:'; wrap.appendChild(lab);
+            var g=document.createElement('div'); g.style.cssText='display:flex;flex-wrap:wrap;gap:6px 16px';
+            var atual=Array.isArray(coms[email])?coms[email]:COMS.map(function(c){ return c[0]; });
+            COMS.forEach(function(c){
+              var l=document.createElement('label'); l.className='chk';
+              var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=atual.indexOf(c[0])>=0;
+              cb.addEventListener('change',function(){
+                var sel=COMS.map(function(x){ return x[0]; }).filter(function(id){
+                  return id===c[0]?cb.checked:atual.indexOf(id)>=0;
+                });
+                var nc=Object.assign({},coms);
+                if(sel.length===COMS.length) delete nc[email]; else nc[email]=sel;
+                salvar(emails,nc).catch(function(){ aviso('Não foi possível salvar.'); cb.checked=!cb.checked; });
+              });
+              l.appendChild(cb); var sp=document.createElement('span'); sp.textContent=c[1]; l.appendChild(sp); g.appendChild(l);
+            });
+            wrap.appendChild(g);
+          }
+          list.appendChild(wrap);
         }
         row(DONO,true);
         emails.forEach(function(e){ row(e,false); });
       }
+      if(dono) $('#coord-box').hidden=false;
       ref.onSnapshot(function(s){
         var d=s.exists?s.data():null;
         emails=(d&&Array.isArray(d.emails))?d.emails:[];
-        render();
+        coms=(d&&d.coms&&typeof d.coms==='object')?d.coms:{};
+        if(dono) render();
+        else window.__setAllowedComs(Array.isArray(coms[meu])?coms[meu]:null);
       },function(){});
-      $('#coord-add').addEventListener('click',function(){
+      if(dono) $('#coord-add').addEventListener('click',function(){
         var v=($('#coord-email').value||'').trim().toLowerCase(), st=$('#coord-status');
         if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ st.textContent='Digite um e-mail válido.'; return; }
         if(v===DONO||emails.indexOf(v)>=0){ st.textContent='Este e-mail já tem acesso.'; return; }
         st.textContent='';
-        ref.set({emails:emails.concat([v])}).then(function(){ $('#coord-email').value=''; aviso('Coordenador adicionado. Ele precisa entrar com essa conta Google.'); })
+        salvar(emails.concat([v]),coms).then(function(){ $('#coord-email').value=''; aviso('Coordenador adicionado. Escolha abaixo as comunidades que ele pode ver.'); })
           .catch(function(){ st.textContent='Não foi possível adicionar.'; });
       });
     });
