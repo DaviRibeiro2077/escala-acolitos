@@ -149,6 +149,16 @@ input[type=text]:focus,input[type=date]:focus,input[type=time]:focus,select:focu
 .pill.solene{background:var(--gold-soft);color:var(--gold)}
 .pill.extra{background:var(--accent-soft);color:var(--accent)}
 .card-head h3.raw{text-transform:none}
+.card.fold{padding:0;gap:0}
+.card.fold .card-head{padding:14px 16px;cursor:pointer;align-items:center;border-radius:6px}
+.card.fold .card-head:hover{background:var(--surface-2)}
+.card.fold .card-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.card-head .chev{display:inline-block;width:14px;margin-right:6px;color:var(--muted);transition:transform .15s}
+.card.open .card-head .chev{transform:rotate(90deg)}
+.card-head .cnt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.card-body{display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;border-top:1px solid var(--line);padding-top:14px}
+.card-body[hidden]{display:none}
+.cardtools{margin-bottom:10px}
 .card.sol{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-soft)}
 .extra-form{border-top:1px solid var(--line);padding-top:16px}
 @media (max-width:520px){.brand img{height:64px}h1{font-size:26px}}
@@ -306,6 +316,10 @@ details.block[open]>summary{margin-bottom:12px}
         <option value="Evangeliário"></option><option value="Cerimoniário"></option><option value="Sineta"></option>
         <option value="Velas do altar"></option><option value="Crucifixo"></option>
       </datalist>
+      <div class="row between cardtools" id="cardtools" hidden>
+        <span class="sub" id="resumo"></span>
+        <span class="row"><button class="btn small" type="button" id="exp-todos">Expandir todos</button><button class="btn small" type="button" id="rec-todos">Recolher todos</button></span>
+      </div>
       <div id="cards" class="cards"><div class="empty">Carregando…</div></div>
 
       <div class="block stack" id="export" hidden>
@@ -470,7 +484,7 @@ window.__GH=true;
 
   var state = {
     disp:{}, escala:{}, extras:{}, horarios:{}, coms:{},
-    mine:new Set(), loaded:null, loadedComs:[], editor:false, allowed:(window.__GH?[]:null),
+    mine:new Set(), loaded:null, loadedComs:[], editor:false, allowed:(window.__GH?[]:null), openCards:new Set(),
     from:'', to:'', pending:false, db:null, dl:null, open:null,
     comAco:validCom(lsGet('acolitos-com')), com:validCom(lsGet('escala-com'))
   };
@@ -833,11 +847,15 @@ window.__GH=true;
     else if(filled===req) pill=el('span',{class:'pill ok',text:'Completa'});
     else if(!Object.keys(asg).length) pill=el('span',{class:'pill idle',text:'Sem escala'});
     else pill=el('span',{class:'pill warn',text:'Faltam '+(req-filled)});
+    var nAsg=funcs.filter(function(f){return asg[f.id];}).length;
     var tags=el('div',{class:'row'},
       m.extra?el('span',{class:'pill extra',text:'Extra'}):null,
       meta.solene?el('span',{class:'pill solene',text:'Solene'}):null,
+      el('span',{class:'cnt',text:nAsg+'/'+funcs.length+' funções'}),
       pill);
-    var card=el('div',{class:'card'+(meta.solene?' sol':'')}, el('div',{class:'card-head'},title,tags));
+    var isOpen=state.openCards.has(m.key);
+    var head=el('div',{class:'card-head',role:'button',tabindex:'0','aria-expanded':String(isOpen)},el('span',{class:'row',style:'gap:0;align-items:baseline'},el('span',{class:'chev','aria-hidden':'true',text:'\u25B8'}),title),tags);
+    var card=el('div',{class:'card fold'+(meta.solene?' sol':'')+(isOpen?' open':'')}, head);
 
     var ids=sortedIds();
     var avail=ids.filter(function(id){ return state.disp[id].datas && state.disp[id].datas[m.key]; });
@@ -855,6 +873,8 @@ window.__GH=true;
     var grid=el('div',{class:'funcs'});
     funcs.forEach(function(f){
       var sid='s-'+m.key+'-'+f.id, cur=asg[f.id]||'';
+      var usados=funcs.filter(function(g){ return g.id!==f.id && asg[g.id]; }).map(function(g){ return asg[g.id]; });
+      var livre=function(id){ return usados.indexOf(id)<0; };
       var s=el('select',{id:sid});
       s.appendChild(el('option',{value:'',text:'—'}));
       function group(label,list){
@@ -863,9 +883,9 @@ window.__GH=true;
         list.forEach(function(id){ g.appendChild(el('option',{value:id,text:nomeDe(id)})); });
         s.appendChild(g);
       }
-      group('Disponíveis',avail);
-      group('Desta comunidade, sem data marcada',daCom);
-      group('Outros acólitos',outros);
+      group('Disponíveis',avail.filter(livre));
+      group('Desta comunidade, sem data marcada',daCom.filter(livre));
+      group('Outros acólitos',outros.filter(livre));
       if(cur && ids.indexOf(cur)<0) s.appendChild(el('option',{value:cur,text:cur}));
       s.value=cur;
       s.addEventListener('change',function(){
@@ -929,8 +949,30 @@ window.__GH=true;
       ctrl.appendChild(del);
     }
     card.appendChild(ctrl);
+    var body=el('div',{class:'card-body'});
+    Array.prototype.slice.call(card.children,1).forEach(function(k){ body.appendChild(k); });
+    body.hidden=!isOpen;
+    card.appendChild(body);
+    function alterna(){
+      var o=!state.openCards.has(m.key);
+      if(o) state.openCards.add(m.key); else state.openCards.delete(m.key);
+      body.hidden=!o; card.classList.toggle('open',o); head.setAttribute('aria-expanded',String(o));
+    }
+    head.addEventListener('click',alterna);
+    head.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); alterna(); } });
     return card;
   }
+  function resumoMissas(masses){
+    var comp=0, rep=0;
+    masses.forEach(function(m){
+      var fs=funcsOf(m), a=(state.escala[m.key]||{}).funcoes||{};
+      var req=fs.filter(function(f){return !f.opc;});
+      if(req.every(function(f){return a[f.id];})) comp++;
+    });
+    return comp+' de '+masses.length+' missas com a escala completa';
+  }
+  $('#exp-todos').addEventListener('click',function(){ (state.lastMasses||[]).forEach(function(m){ state.openCards.add(m.key); }); renderEscala(); });
+  $('#rec-todos').addEventListener('click',function(){ state.openCards.clear(); renderEscala(); });
 
   function exportText(masses){
     var parts=[];
@@ -984,7 +1026,7 @@ window.__GH=true;
     $('#horarios-box').hidden=semAcesso;
     if(semAcesso){
       renderComTabs(); cards.replaceChildren(el('div',{class:'empty',text:'Nenhuma comunidade liberada para você ainda. Peça ao dono do sistema para liberar.'}));
-      $('#extra-box').hidden=true; $('#export').hidden=true; $('#respostas').hidden=true;
+      $('#extra-box').hidden=true; $('#export').hidden=true; $('#respostas').hidden=true; $('#cardtools').hidden=true;
       return;
     }
     renderComTabs(); renderHorarios();
@@ -998,6 +1040,8 @@ window.__GH=true;
         : 'Esta comunidade ainda não tem horários. Cadastre os dias e horários das missas em "Horários fixos das missas".'}));
     } else masses.forEach(function(m){ cards.appendChild(massCard(m)); });
     state.lastMasses=masses;
+    $('#cardtools').hidden=!masses.length;
+    if(masses.length) $('#resumo').textContent=resumoMissas(masses);
     var txt=exportText(masses);
     $('#export').hidden=!txt; $('#texto').value=txt;
     $('#respostas').hidden=false;
